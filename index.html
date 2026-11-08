@@ -27,6 +27,11 @@
   .pill.offline .dot{background:var(--bad);box-shadow:0 0 8px rgba(248,113,113,.7)}
   .pill.checking .dot{background:var(--warn);box-shadow:0 0 8px rgba(251,191,36,.7)}
   .pill b{color:var(--text)}
+  .now-playing{display:flex;align-items:center;gap:12px;border:1px solid rgba(52,211,153,.55);background:linear-gradient(90deg,rgba(52,211,153,.13),rgba(34,211,238,.06) 55%,transparent);border-radius:14px;padding:11px 18px;margin-bottom:14px;box-shadow:0 0 22px rgba(52,211,153,.12)}
+  .now-playing[hidden]{display:none !important}
+  .now-playing .np-dot{width:10px;height:10px;border-radius:50%;background:var(--good);box-shadow:0 0 10px var(--good);flex:0 0 auto}
+  .now-playing .np-label{font-family:"Barlow Condensed",sans-serif;font-weight:600;letter-spacing:.22em;text-transform:uppercase;font-size:13px;color:var(--good);white-space:nowrap}
+  .now-playing .np-name{font-family:"Barlow Condensed",sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:.02em;font-size:26px;line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .docker-actions{display:flex;gap:8px;align-items:center}
   .toggle-btn,.copy-btn{appearance:none;border:1px solid var(--line);background:#08131e;color:var(--muted);font:inherit;font-size:13px;font-weight:600;padding:9px 13px;border-radius:9px;cursor:pointer}
   .copy-btn{border-color:var(--line-bright);background:#0d2436;color:var(--cyan-bright);font-weight:700}
@@ -39,6 +44,7 @@
     .brand{gap:10px;min-width:0} .flipper-mark{width:30px;height:30px} .flipper-mark svg{width:16px;height:16px}
     .brand h1{font-size:20px;white-space:nowrap} .brand p{margin:0;font-size:11px;white-space:nowrap}
     .top-meta{gap:7px;flex-wrap:nowrap} .pill{padding:4px 10px;font-size:11px;white-space:nowrap}
+    .now-playing{flex:0 0 auto;padding:5px 14px;margin-bottom:5px;border-radius:10px;gap:9px} .now-playing .np-label{font-size:10.5px} .now-playing .np-name{font-size:18px}
     .hero{flex:0 0 auto;border-radius:14px} .hero-head{padding:5px 14px 0} .kicker{font-size:10.5px} .hero-when{font-size:11px}
     .hero-main{padding:0 14px 7px} .table-name{font-size:25px;margin:1px 0 0;line-height:1} .table-sub{font-size:11.5px;margin:0 0 5px;line-height:1.3}
     .dmd{padding:5px 12px 4px;border-radius:10px} .dmd-label{font-size:9px;margin-bottom:0} .dmd-score{font-size:25px;line-height:1.05} .dmd-note{margin-top:2px;font-size:11px}
@@ -81,6 +87,8 @@
   .dmd-label{font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:#a97e1f;font-weight:700;margin-bottom:4px}
   .dmd-score{font-family:"Share Tech Mono",monospace;font-size:clamp(32px,5.5vw,52px);line-height:1;color:var(--amber);text-shadow:0 0 14px rgba(251,191,36,.55);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .dmd-note{margin-top:8px;font-size:13px;color:#c9a44a}
+  .dmd-topscore{margin-top:7px;font-family:"Share Tech Mono",monospace;font-size:15px;letter-spacing:.1em;text-transform:uppercase;color:#c9a44a}
+  .dmd-topscore b{color:var(--amber);font-weight:400}
   .hero-side{border-left:1px solid var(--line);padding:18px 20px 20px;background:rgba(0,0,0,.18)}
   .side-title{font-family:"Barlow Condensed",sans-serif;letter-spacing:.16em;text-transform:uppercase;font-size:13px;color:var(--muted);margin:0 0 12px;font-weight:600}
   .players{display:grid;gap:9px}
@@ -151,7 +159,7 @@
   footer{margin-top:22px;color:var(--muted2);font-size:12.5px;text-align:center;line-height:1.6}
   @media (max-width:900px){.hero-body{grid-template-columns:1fr}.hero-side{border-left:0;border-top:1px solid var(--line)}.grid{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,1fr)}}
   @media (max-width:520px){.wrap{padding:16px 12px 40px}.brand h1{font-size:28px}.srow{grid-template-columns:32px 56px 1fr;grid-template-rows:auto auto}.sscore{grid-column:3;text-align:left;font-size:17px}.dmd-score{font-size:30px}}
-  @media (prefers-reduced-motion:no-preference){.pill.online .dot,.pill.checking .dot{animation:pulse 2.2s infinite}@keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}}
+  @media (prefers-reduced-motion:no-preference){.pill.online .dot,.pill.checking .dot,.now-playing .np-dot{animation:pulse 2.2s infinite}@keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}}
 </style>
 </head>
 <body>
@@ -171,6 +179,8 @@
       <span class="pill" id="updatedPill">Scores file <b>&nbsp;<span id="updatedText">not loaded</span></b></span>
     </div>
   </div>
+
+  <div class="now-playing" id="nowPlaying" hidden role="status" aria-live="polite"><span class="np-dot" aria-hidden="true"></span><span class="np-label">Now playing</span><span class="np-name" id="nowPlayingName"></span></div>
 
   <div class="hero" id="hero" aria-live="polite">
     <div class="empty-hero">
@@ -259,6 +269,8 @@ services:
   var statusPill = document.getElementById("statusPill");
   var statusText = document.getElementById("statusText");
   var updatedText = document.getElementById("updatedText");
+  var nowPlayingEl = document.getElementById("nowPlaying");
+  var nowPlayingNameEl = document.getElementById("nowPlayingName");
 
   function esc(s){
     return String(s == null ? "" : s).replace(/[&<>"']/g, function(c){
@@ -299,14 +311,19 @@ services:
   function parseEntry(item, order){
     if (item == null) return null;
     var text = "", score = null, table = null, ini = null, date = null;
+    var lastScore = null, lastScoreInitials = null, lastScoreAt = null;
     if (typeof item === "string"){ text = item; }
     else if (typeof item === "object"){
       text = item.text || item.line || item.raw || item.name || "";
       if (typeof item.score === "number") score = item.score;
       else if (item.score != null) score = parseInt(String(item.score).replace(/[^0-9]/g,""), 10);
       table = item.table || item.game || item.gameName || item.title || null;
-      ini = item.initials || item.ini || item.player || item.playerName || null;
+      ini = item.playerInitials || item.initials || item.ini || item.player || item.playerName || null;
       date = item.date || item.when || item.playedAt || null;
+      if (typeof item.lastScore === "number" && !isNaN(item.lastScore)) lastScore = item.lastScore;
+      else if (item.lastScore != null) { var ls = parseInt(String(item.lastScore).replace(/[^0-9]/g,""), 10); if (!isNaN(ls)) lastScore = ls; }
+      lastScoreInitials = item.lastScoreInitials || item.lastInitials || null;
+      lastScoreAt = item.lastScoreAt || item.lastAt || null;
       if (!text && table) text = table;
     }
     text = String(text || "").trim();
@@ -342,7 +359,8 @@ services:
       ini = (mm && table.toUpperCase() !== mm[1]) ? mm[1] : "---";
     }
     ini = String(ini).toUpperCase().slice(0,6);
-    return { table: String(table).trim(), ini: ini, score: score, text: text, date: date, order: order };
+    if (lastScoreInitials != null) lastScoreInitials = String(lastScoreInitials).toUpperCase().slice(0,6);
+    return { table: String(table).trim(), ini: ini, score: score, text: text, date: date, order: order, lastScore: lastScore, lastScoreInitials: lastScoreInitials, lastScoreAt: lastScoreAt };
   }
   function parseFeed(data){
     var items = null;
@@ -402,12 +420,21 @@ services:
       return '<div class="player' + (i===0 ? ' winner' : '') + '"><div class="who"><span class="p-badge">' + (i+1) + '</span><span><span class="ini">' + esc(e.ini) + '</span>' + (i===0 ? '<br><span class="tag">Top score</span>' : '') + '</span></div><span class="score">' + fmt(e.score) + '</span></div>';
     }).join("");
     var note = second ? 'Ahead of the next best by <b>' + fmt(best.score - second.score) + '</b>' : 'Only score recorded on this table so far';
+    var lastEntry = null;
+    for (var li = 0; li < board.length; li++){ if (board[li].lastScore != null && !isNaN(board[li].lastScore) && board[li].lastScore > 0){ lastEntry = board[li]; break; } }
+    if (!lastEntry && first.lastScore != null && !isNaN(first.lastScore) && first.lastScore > 0) lastEntry = first;
+    var hasLast = !!lastEntry;
+    var mainScore = hasLast ? lastEntry.lastScore : best.score;
+    var mainIni = hasLast ? (lastEntry.lastScoreInitials || "") : best.ini;
+    var dmdLabel = hasLast ? ('Last score' + (mainIni ? ' · ' + esc(mainIni) : '')) : ('Top score · ' + esc(best.ini));
+    var dmdAria = hasLast ? ('Last score on ' + table + ': ' + fmt(mainScore) + '. Top score: ' + fmt(best.score)) : ('Top score on ' + table + ': ' + fmt(best.score));
+    var topLine = hasLast ? '<div class="dmd-topscore">Top score <b>' + fmt(best.score) + '</b></div>' : '';
     heroEl.innerHTML =
       '<div class="hero-head"><div class="kicker">Last table played</div><div class="hero-when">First table in the latest cabinet feed</div></div>' +
       '<div class="hero-body"><div class="hero-main">' +
         '<div class="table-name">' + esc(table) + '</div>' +
         '<p class="table-sub">' + (GROUPS[table] ? GROUPS[table].length : 0) + ' score' + ((GROUPS[table]||[]).length === 1 ? '' : 's') + ' recorded on this table</p>' +
-        '<div class="dmd" role="img" aria-label="Top score on ' + esc(table) + ': ' + fmt(best.score) + '"><div class="dmd-label">Top score · ' + esc(best.ini) + '</div><div class="dmd-score">' + fmt(best.score) + '</div><div class="dmd-note">' + note + '</div></div>' +
+        '<div class="dmd" role="img" aria-label="' + esc(dmdAria) + '"><div class="dmd-label">' + dmdLabel + '</div><div class="dmd-score">' + fmt(mainScore) + '</div>' + topLine + '<div class="dmd-note">' + note + '</div></div>' +
       '</div><div class="hero-side"><p class="side-title">This table · top scores</p><div class="players">' + players + '</div>' +
       '<div class="hero-stats"><div class="mini-stat"><div class="n">' + (GROUPS[table] ? GROUPS[table].length : 0) + '</div><div class="l">Scores</div></div>' +
       '<div class="mini-stat"><div class="n">' + fmt(best.score) + '</div><div class="l">Best</div></div>' +
@@ -549,6 +576,39 @@ services:
       .then(function(){ fetching = false; }, function(){ fetching = false; });
   }
 
+  /* ---------- now playing (live) ----------
+     now-playing.json sits next to scores.json and is polled on
+     the same 30-second cycle. The banner shows only while the
+     file says a game is active; any other state (inactive,
+     missing, unreadable, or malformed) hides it outright so it
+     never lingers on the last table after a game ends. */
+  function hideNowPlaying(){
+    nowPlayingEl.hidden = true;
+    nowPlayingNameEl.textContent = "";
+  }
+  var npFetching = false;
+  function loadNowPlaying(){
+    if (npFetching) return;
+    npFetching = true;
+    fetch("now-playing.json", { cache: "no-store" })
+      .then(function(res){
+        if (!res.ok) throw new Error("now-playing.json returned " + res.status);
+        return res.json();
+      })
+      .then(function(data){
+        var name = data && typeof data.text === "string" ? data.text.trim() : "";
+        if (data && data.active === true && name){
+          nowPlayingNameEl.textContent = name;
+          nowPlayingEl.hidden = false;
+        } else {
+          hideNowPlaying();
+        }
+      })
+      .catch(function(){ hideNowPlaying(); })
+      .then(function(){ npFetching = false; }, function(){ npFetching = false; hideNowPlaying(); });
+  }
+  function refreshLive(){ loadScores(); loadNowPlaying(); }
+
   document.getElementById("search").addEventListener("input", function(){ state.q = this.value.trim(); renderScores(); });
 
   var dockerBox = document.getElementById("dockerBox");
@@ -573,12 +633,13 @@ services:
   });
 
   renderAll();
-  loadScores();
-  // Live updates: poll scores.json every 30 seconds, forever,
-  // and refresh right away when the tab becomes visible again.
-  setInterval(loadScores, 30000);
+  refreshLive();
+  // Live updates: poll scores.json and now-playing.json every
+  // 30 seconds, forever, and refresh right away when the tab
+  // becomes visible again.
+  setInterval(refreshLive, 30000);
   document.addEventListener("visibilitychange", function(){
-    if (!document.hidden) loadScores();
+    if (!document.hidden) refreshLive();
   });
 </script>
 </body>
