@@ -23,7 +23,7 @@ services:
       https://raw.githubusercontent.com/dhrandy/vpx-score-board/main/index.html
       || true;
       while true; do
-      wget -qO /data/scores.json.tmp --header='X-Api-Key: $$VPIN_API_KEY'
+      wget -qO /data/scores.json.tmp --header=\"X-Api-Key: $$VPIN_API_KEY\"
       $$VPIN_BRIDGE_URL/api/highscores
       && mv /data/scores.json.tmp /data/scores.json || true;
       sleep 30; done"
