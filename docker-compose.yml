@@ -19,10 +19,10 @@ services:
     volumes:
       - /DATA/AppData/vpx-score-board:/data
     command: >-
-      sh -c "wget -qO /data/index.html
+      sh -c "while true; do
+      wget -qO /data/index.html
       https://raw.githubusercontent.com/dhrandy/vpx-score-board/main/index.html
       || true;
-      while true; do
       wget -qO /data/scores.json.tmp --header=\"X-Api-Key: $$VPIN_API_KEY\"
       $$VPIN_BRIDGE_URL/api/highscores
       && mv /data/scores.json.tmp /data/scores.json || true;
