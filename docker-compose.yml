@@ -1,7 +1,6 @@
 # docker-compose.yml · Dockhand stack: vpx-score-board
 # Set VPIN_BRIDGE_URL and VPIN_API_KEY in the stack environment.
-# The fetcher writes index.html, scores.json and now-playing.json
-# into the folder nginx serves.
+# The fetcher writes index.html and scores.json into the folder nginx serves.
 
 services:
   vpx-score-board:
@@ -27,9 +26,6 @@ services:
       wget -qO /data/scores.json.tmp --header=\"X-Api-Key: $$VPIN_API_KEY\"
       $$VPIN_BRIDGE_URL/api/highscores
       && mv /data/scores.json.tmp /data/scores.json || true;
-      wget -qO /data/now-playing.json.tmp --header=\"X-Api-Key: $$VPIN_API_KEY\"
-      $$VPIN_BRIDGE_URL/api/status
-      && mv /data/now-playing.json.tmp /data/now-playing.json || true;
       sleep 30; done"
     environment:
       - VPIN_BRIDGE_URL=${VPIN_BRIDGE_URL}
